@@ -21,20 +21,6 @@ object FtpClient {
   case object Connected extends State
   case object Active extends State
 }
-case class Request(line:String)
-case class Response(code:Int, line:String)
-class FtpClientConnection(val connection: ActorRef) extends Actor {
-  var requester = context.parent
-  def receive = {
-    case Request(line) => {
-      requester = sender
-      connection ! Tcp.Write(ByteString(s"$line\n"))
-    }
-    case Tcp.Received(data) => data.utf8String match {
-      case Ftp.ResponsePattern(rawCode, rawMessage) => requester ! Response(rawCode.toInt, rawMessage)
-    }
-  }
-}
 
 class FtpClient  extends FSM[FtpClient.State,FtpClient.Data] {
   import context.system
@@ -46,7 +32,7 @@ class FtpClient  extends FSM[FtpClient.State,FtpClient.Data] {
       stay()
     }
     case Event(Tcp.Connected(remote,local), Uninitialized) => {
-      val connection = context.actorOf(Props(classOf[FtpClientConnection], sender))
+      val connection = context.actorOf(Props(classOf[CommandConnection], sender))
       sender ! Tcp.Register(connection)
       context.parent ! Ftp.Connected
       goto(Connected) using ConnectData(connection)
@@ -55,15 +41,12 @@ class FtpClient  extends FSM[FtpClient.State,FtpClient.Data] {
 
   when(Connected) {
     case Event(Ftp.Auth(login, password), ctx: ConnectData) => {
-      import context._
       implicit val timeout = Timeout(10.seconds)
-
-      val r = for {
-        loginResponse <- ask(ctx.connection, Request(s"USER $login")).mapTo[Response]
-        passResponse <- ask(ctx.connection, Request(s"PASS $password")).mapTo[Response]
-      } yield {
-        val result = (loginResponse.code == 331) && (passResponse.code == 220)
-      }
+      implicit val executor = context.dispatcher
+      val result = for {
+        loginResponse <- ctx.connection.ask(Request(s"USER $login"))
+        passwordResponse <- ctx.connection.ask(Request(s"PASS $password"))
+      } yield (loginResponse, passwordResponse)
       stay()
     }
   }
