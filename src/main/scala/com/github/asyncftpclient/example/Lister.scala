@@ -8,7 +8,7 @@ import com.github.asyncftpclient.{Ftp, FtpClient}
  */
 case object Start
 class ListerActor(host:String, user:String, password:String, dir:String) extends Actor {
-  val client = context.actorOf(Props[FtpClient])
+  val client = context.actorOf(Props[FtpClient], name = "client")
   def receive = {
     case Start => client ! {
       System.out.println(s"Connecting to $host")
@@ -24,7 +24,7 @@ class ListerActor(host:String, user:String, password:String, dir:String) extends
     }
     case Ftp.DirListing(files) => {
       System.out.println(s"Received listing, printing result and disconnecting")
-      files.foreach(f => System.out.println(s"file: $f"))
+      files.foreach(f => System.out.println(s"file: ${f.name}"))
       client ! Ftp.Disconnect
     }
     case Ftp.Disconnected => {
@@ -38,7 +38,7 @@ class ListerActor(host:String, user:String, password:String, dir:String) extends
 object Lister {
   def main(args:Array[String]) = {
     val system = ActorSystem()
-    val client = system.actorOf(Props(classOf[ListerActor], "ftp.yandex.ru", "anonymous", "test@evil.com", "/"))
+    val client = system.actorOf(Props(classOf[ListerActor], "ftp.ncdc.noaa.gov", "anonymous", "test@evil.com", "/"))
     client ! Start
     system.awaitTermination()
   }
