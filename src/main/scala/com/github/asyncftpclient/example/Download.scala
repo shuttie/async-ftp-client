@@ -1,12 +1,12 @@
 package com.github.asyncftpclient.example
 
 import akka.actor.{PoisonPill, Actor, Props, ActorSystem}
-import com.github.asyncftpclient.{Ftp, FtpClient}
+import com.github.asyncftpclient.{TransferBytes, Ftp, FtpClient}
 
 /**
- * Created by shutty on 3/1/14.
+ * Created by shutty on 3/10/14.
  */
-class ListerActor(host:String, user:String, password:String, dir:String) extends Actor {
+class DownloadActor (host:String, user:String, password:String, path:String) extends Actor {
   val client = context.actorOf(Props[FtpClient], name = "client")
   def receive = {
     case "start" => client ! {
@@ -18,12 +18,12 @@ class ListerActor(host:String, user:String, password:String, dir:String) extends
       Ftp.Auth(user, password)
     }
     case Ftp.AuthSuccess => {
-      System.out.println(s"Authenticated, listing $dir")
-      client ! Ftp.Dir(dir)
+      System.out.println(s"Authenticated, downloading $path")
+      client ! Ftp.Download(path)
     }
-    case Ftp.DirListing(files) => {
-      System.out.println(s"Received listing, printing result and disconnecting")
-      files.foreach(f => System.out.println(s"file: ${f.name}"))
+    case TransferBytes(bytes) => {
+      System.out.println(s"Received data, printing result and disconnecting")
+      System.out.println(s"${new String(bytes)}")
       client ! Ftp.Disconnect
     }
     case Ftp.Disconnected => {
@@ -31,13 +31,13 @@ class ListerActor(host:String, user:String, password:String, dir:String) extends
       self ! PoisonPill
     }
   }
+
 }
 
-
-object Lister {
+object Download {
   def main(args:Array[String]) = {
     val system = ActorSystem()
-    val client = system.actorOf(Props(classOf[ListerActor], "ftp.ncdc.noaa.gov", "anonymous", "test@evil.com", "/"))
+    val client = system.actorOf(Props(classOf[DownloadActor], "ftp.ncdc.noaa.gov", "anonymous", "test@evil.com", "/welcome.msg"))
     client ! "start"
     system.awaitTermination()
   }

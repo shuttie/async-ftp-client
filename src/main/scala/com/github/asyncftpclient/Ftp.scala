@@ -18,14 +18,14 @@ object Ftp {
   case object AuthSuccess
   case object AuthFail
 
-  case class Download(path:String, mode:ConnectionMode = PassiveMode)
+  case class Download(path:String)
   case class Downloaded(buffer:ByteBuffer)
   case class DownloadFail(reason:Throwable)
 
   case object Disconnect
   case object Disconnected
 
-  case class Dir(path:String,mode:ConnectionMode = PassiveMode)
+  case class Dir(path:String)
   case class DirListing(files:List[FileInfo])
   case object DirFail
 
