@@ -37,7 +37,8 @@ class DownloadActor (host:String, user:String, password:String, path:String) ext
 object Download {
   def main(args:Array[String]) = {
     val system = ActorSystem()
-    val client = system.actorOf(Props(classOf[DownloadActor], "ftp.ncdc.noaa.gov", "anonymous", "test@evil.com", "/welcome.msg"))
+    // ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.2014021706/gfs.t06z.pgrb2bf114
+    val client = system.actorOf(Props(classOf[DownloadActor], "ftp.ncep.noaa.gov", "anonymous", "test@evil.com", "/pub/data/nccf/com/gfs/prod/gfs.2014021706/gfs.t06z.pgrb2bf114"))
     client ! "start"
     system.awaitTermination()
   }

@@ -41,6 +41,23 @@ class CommandConnection(val addr:InetSocketAddress) extends FSM[State, Data] wit
 
   when(ReceivePlain) {
     case Event(Tcp.Received(data),ctx:PlainData) => {
+      val replies = Ftp.ResponsePattern.findAllIn(data.utf8String).toList
+      replies.headOption match {
+        case None => stay()
+        case Some(Ftp.ResponsePattern(rawCode, rawMessage)) => {
+          log.info(s"received $rawCode $rawMessage")
+          context.parent ! Response(rawCode.toInt, rawMessage)
+          stay()
+        }
+        case Some(Ftp.MultilineResponsePattern(rawCode, rawMessage)) => {
+          log.info(s"received multiline $rawCode $rawMessage")
+          val buffer = new ByteArrayOutputStream()
+          val bytes = rawMessage.getBytes
+          buffer.write(bytes, 0, bytes.size)
+          goto(ReceiveMulti) using MultiData(ctx.connection, buffer)
+        }
+      }
+
       data.utf8String match {
         case Ftp.ResponsePattern(rawCode, rawMessage) => {
           log.info(s"received $rawCode $rawMessage")

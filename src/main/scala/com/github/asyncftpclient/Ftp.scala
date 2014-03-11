@@ -31,7 +31,7 @@ object Ftp {
 
   case class FileInfo(name:String, size:Long, user:String, group:String, mode:String)
 
-  val ResponsePattern = "(\\d+) (.*)\r\n".r
-  val MultilineResponsePattern = "(\\d+)\\-(.*)\r?\n?.*\r?\n?".r
+  val ResponsePattern = "(\\d+)[ \\-](.*)\r\n".r
+  val MultilineResponsePattern = "(\\d+)\\-(.*)\r?\n?".r
   val ListPattern = "([drwsx\\-]+)\\s+(\\d+)\\s+(\\w+)\\s+(\\w+)\\s+(\\d+)\\s+(\\w{3})\\s+(\\d+)\\s+([\\d:]+)\\s+([\\w\\.]+)\r?".r
 }
